@@ -1,4 +1,4 @@
-name: Build and Push Docker image to Docker Hub
+name: CICD
 
 on:
   push:
@@ -63,7 +63,7 @@ jobs:
 
     - name: Helm uninstall
       run: |
-        helm uninstall tosspayments
+        helm uninstall tosspayments || true
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
