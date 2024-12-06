@@ -44,8 +44,8 @@ public class PaymentController {
     ) throws Exception {
         String secretKey = request.getRequestURI().contains("/confirm/payment") ? API_SECRET_KEY : WIDGET_SECRET_KEY;
         JSONObject response = sendRequest(parseRequestData(jsonBody), secretKey, "https://api.tosspayments.com/v1/payments/confirm");
-        System.out.println(response);
-        if( !response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")){
+
+        if (!response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")) {
             Long id = paymentService.tokenGetUserId(Authorization);
             try {
                 kafkaService.sendMessage(new IsBilling(id, true));
@@ -53,9 +53,11 @@ public class PaymentController {
                 logger.error("Failed to send Kafka message", e);
             }
         }
+
         int statusCode = response.containsKey("code") ? 400 : 200;
         return ResponseEntity.status(statusCode).body(response);
     }
+
 
     @RequestMapping(value = "/confirm-billing")
     public ResponseEntity<JSONObject> confirmBilling(@RequestBody String jsonBody) throws Exception {
