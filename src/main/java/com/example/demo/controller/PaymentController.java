@@ -1,6 +1,10 @@
 package com.example.demo.controller;
 
+import com.example.demo.Dto.IsBilling;
+import com.example.demo.Service.KafkaService;
+import com.example.demo.Service.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -20,19 +24,32 @@ import java.util.HashMap;
 import java.util.Map;
 
 @CrossOrigin("*")
-@RequestMapping("/api/v1/tosspaymemts")
+@RequestMapping("/api/v1/tosspayments")
 @RestController
+@RequiredArgsConstructor
 public class PaymentController {
+
+    private final KafkaService kafkaService;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private static final String WIDGET_SECRET_KEY = "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
     private static final String API_SECRET_KEY = "test_sk_ALnQvDd2VJx7LPgwxBBa8Mj7X41m";
     private final Map<String, String> billingKeyMap = new HashMap<>();
+    private final PaymentService paymentService;
 
     @RequestMapping(value = {"/confirm/widget", "/confirm/payment"})
-    public ResponseEntity<JSONObject> confirmPayment(HttpServletRequest request, @RequestBody String jsonBody) throws Exception {
+    public ResponseEntity<JSONObject> confirmPayment(
+            HttpServletRequest request,
+            @RequestHeader String Authorization,
+            @RequestBody String jsonBody
+    ) throws Exception {
         String secretKey = request.getRequestURI().contains("/confirm/payment") ? API_SECRET_KEY : WIDGET_SECRET_KEY;
         JSONObject response = sendRequest(parseRequestData(jsonBody), secretKey, "https://api.tosspayments.com/v1/payments/confirm");
-        int statusCode = response.containsKey("error") ? 400 : 200;
+        System.out.println(response);
+        if( !response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")){
+            Long id = paymentService.tokenGetUserId(Authorization);
+            kafkaService.sendMessage(new IsBilling(id, true));
+        }
+        int statusCode = response.containsKey("code") ? 400 : 200;
         return ResponseEntity.status(statusCode).body(response);
     }
 

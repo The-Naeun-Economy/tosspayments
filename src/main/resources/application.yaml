@@ -1,0 +1,32 @@
+
+server:
+  port: 4000
+
+api:
+  key: test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6
+
+
+spring:
+  devtools:
+    livereload:
+     enabled: true
+  freemarker:
+    cache: false
+  thymeleaf:
+   cache: false
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      auto-offset-reset: earliest
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+
+logging:
+  level:
+    root: info
+
+jwt:
+  secret-key: 4Ixa3PT4KhLW1fz4bJoY8z2dR4Gk7jHpB3Yw8mQvL9NdXx5vT9Yw8VhN3rB4YxK2
+
