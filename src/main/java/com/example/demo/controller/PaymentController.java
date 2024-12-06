@@ -47,7 +47,11 @@ public class PaymentController {
         System.out.println(response);
         if( !response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")){
             Long id = paymentService.tokenGetUserId(Authorization);
-            kafkaService.sendMessage(new IsBilling(id, true));
+            try {
+                kafkaService.sendMessage(new IsBilling(id, true));
+            } catch (Exception e) {
+                logger.error("Failed to send Kafka message", e);
+            }
         }
         int statusCode = response.containsKey("code") ? 400 : 200;
         return ResponseEntity.status(statusCode).body(response);
