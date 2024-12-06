@@ -125,3 +125,5 @@ affinity: {}
 env:
   - name: SERVER_PORT
     value: 4000
+  - name: KAFKA_BOOTSTRAP_SERVERS
+    value: kafka.default.svc.cluster.local:9092
