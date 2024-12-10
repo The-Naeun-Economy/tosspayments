@@ -13,58 +13,6 @@ jobs:
     - name: Check out the repository
       uses: actions/checkout@v4
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: us-east-1
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-    - name: aws eks update kubeconfig
-      run: |
-        aws eks --region us-east-1 update-kubeconfig --name repick-eks
-
-    - name: Set up ARCH and PLATFORM
-      id: setup-arch
-      run: |
-        if [[ $(uname -m) == "aarch64" ]]; then
-          ARCH="arm64"
-        elif [[ $(uname -m) == "armv7l" ]]; then
-          ARCH="armv7"
-        elif [[ $(uname -m) == "armv6l" ]]; then
-          ARCH="armv6"
-        else
-          ARCH="amd64"
-        fi
-        echo "ARCH=$ARCH" >> $GITHUB_ENV
-        PLATFORM=$(uname -s)_$ARCH
-        echo "PLATFORM=$PLATFORM" >> $GITHUB_ENV
-
-    - name: Download eksctl
-      run: |
-        curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_${{ env.PLATFORM }}.tar.gz"
-
-    - name: (Optional) Verify checksum
-      run: |
-        curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep ${{ env.PLATFORM }} | sha256sum --check
-
-    - name: Extract and install eksctl
-      run: |
-        tar -xzf eksctl_${{ env.PLATFORM }}.tar.gz -C /tmp && rm eksctl_${{ env.PLATFORM }}.tar.gz
-        sudo mv /tmp/eksctl /usr/local/bin
-
-    - name: Install Helm
-      run: |
-        curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-        sudo apt-get install apt-transport-https --yes
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-        sudo apt-get update
-        sudo apt-get install helm
-
-    - name: Helm uninstall
-      run: |
-        helm uninstall tosspayments || true
-
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -93,8 +41,23 @@ jobs:
       run: |
         docker push jogyoungjun/tosspayments:latest
 
-    - name: Helm install
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-east-1
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: aws eks update kubeconfig
       run: |
-        helm upgrade --install tosspayments ./tosspayments
+        aws eks --region us-east-1 update-kubeconfig --name repick-eks
+
+    - name: kubectl rollout restarting
+      run: |
+        kubectl rollout restart deployment tosspayments-server
+
+    - name: Notify Slack
+      run: |
+        curl -X POST -H 'Content-type: application/json' --data '{"text":"Successful Deploy : tosspayments"}' ${{ secrets.SLACK_WEBHOOK_URL }}
           
           
