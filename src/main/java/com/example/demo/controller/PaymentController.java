@@ -1,8 +1,13 @@
 package com.example.demo.controller;
 
 import com.example.demo.Dto.IsBilling;
+import com.example.demo.Response.PaymentResponse;
 import com.example.demo.Service.KafkaService;
 import com.example.demo.Service.PaymentService;
+import com.example.demo.domain.Payment;
+import com.example.demo.domain.User;
+import com.example.demo.repository.PaymentRepository;
+import com.example.demo.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.json.simple.JSONObject;
@@ -19,9 +24,10 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 @CrossOrigin("*")
 @RequestMapping("/api/v1/tosspayments")
@@ -35,6 +41,28 @@ public class PaymentController {
     private static final String API_SECRET_KEY = "test_sk_ALnQvDd2VJx7LPgwxBBa8Mj7X41m";
     private final Map<String, String> billingKeyMap = new HashMap<>();
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
+
+    @GetMapping("/remaining")
+    public boolean userRemaining(@RequestHeader String Authorization) {
+        Long id = paymentService.tokenGetUserId(Authorization);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        ZonedDateTime remaining;
+        try {
+            remaining = ZonedDateTime.parse(user.getRemaining());
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid date format for user remaining time: " + user.getRemaining(), e);
+        }
+
+        ZonedDateTime now = ZonedDateTime.now();
+
+        return remaining.isAfter(now);
+    }
+
 
     @RequestMapping(value = {"/confirm/widget", "/confirm/payment"})
     public ResponseEntity<JSONObject> confirmPayment(
@@ -46,12 +74,37 @@ public class PaymentController {
         JSONObject response = sendRequest(parseRequestData(jsonBody), secretKey, "https://api.tosspayments.com/v1/payments/confirm");
 
         if (!response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")) {
+
             Long id = paymentService.tokenGetUserId(Authorization);
+            ZonedDateTime parsedDateTime = ZonedDateTime.parse(response.get("requestedAt").toString());
+            int days = response.get("totalAmount").toString().equals("5900") ? 30 : 365;
+
+            userRepository.findById(id).ifPresentOrElse(user -> {
+                // 유저가 이미 존재하는 경우 날짜 업데이트
+                ZonedDateTime newDateTime = ZonedDateTime.parse(user.getRemaining()).plusDays(days);
+                user.setRemaining(newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+                Payment payment = PaymentResponse.toEntity(response, user);
+                paymentRepository.save(payment);
+                user.getPayments().add(payment);
+                userRepository.save(user);
+            }, () -> {
+                ZonedDateTime newDateTime = parsedDateTime.plusDays(days);
+                Set<Payment> payments = new HashSet<>();
+                User newUser = new User(id, newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), payments);
+                userRepository.save(newUser);
+                Payment payment = PaymentResponse.toEntity(response, newUser);
+                paymentRepository.save(payment);
+                payments.add(payment);
+                userRepository.save(newUser);
+            });
+
+
             try {
                 kafkaService.sendMessage(new IsBilling(id, true));
             } catch (Exception e) {
-                logger.error("Failed to send Kafka message", e);
+                logger.error("Failed to Producer Sent", e);
             }
+
         }
 
         int statusCode = response.containsKey("code") ? 400 : 200;

@@ -22,6 +22,14 @@ spring:
     consumer:
       auto-offset-reset: earliest
       value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost:4001}/tosspayments?serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root_password}
+  jpa:
+    hibernate:
+      ddl-auto: create # 기존 'create'를 변경했으나 필요에 따라 수정
+    show-sql: true
 
 logging:
   level:

@@ -1,0 +1,8 @@
+services:
+  chat_room_mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: tosspayments
+    ports:
+      - "4001:3306"
