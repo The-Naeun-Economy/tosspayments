@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.Dto.IsBilling;
 import com.example.demo.Response.PaymentResponse;
+import com.example.demo.Response.testPaymentResponse;
 import com.example.demo.Service.KafkaService;
 import com.example.demo.Service.PaymentService;
 import com.example.demo.domain.Payment;
@@ -15,8 +16,10 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,10 +47,24 @@ public class PaymentController {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
 
+    @GetMapping("/mypayments")
+    public Page<PaymentResponse> myPayments(@RequestHeader String Authorization,
+                                    @RequestParam int page, @RequestParam int size
+    ) {
+        Long id = paymentService.tokenGetUserId(Authorization);
+        Pageable pageable = PageRequest.of(page, size);
+        return paymentService.getPaymentByUserId(id, pageable);
+    }
+
+    @GetMapping
+    public Page<PaymentResponse> myPayments(@RequestParam int page, @RequestParam int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return paymentService.getPaymentAll(pageable);
+    }
+
     @GetMapping("/remaining")
     public boolean userRemaining(@RequestHeader String Authorization) {
         Long id = paymentService.tokenGetUserId(Authorization);
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 
@@ -57,12 +74,9 @@ public class PaymentController {
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid date format for user remaining time: " + user.getRemaining(), e);
         }
-
         ZonedDateTime now = ZonedDateTime.now();
-
         return remaining.isAfter(now);
     }
-
 
     @RequestMapping(value = {"/confirm/widget", "/confirm/payment"})
     public ResponseEntity<JSONObject> confirmPayment(
@@ -80,10 +94,9 @@ public class PaymentController {
             int days = response.get("totalAmount").toString().equals("5900") ? 30 : 365;
 
             userRepository.findById(id).ifPresentOrElse(user -> {
-                // 유저가 이미 존재하는 경우 날짜 업데이트
                 ZonedDateTime newDateTime = ZonedDateTime.parse(user.getRemaining()).plusDays(days);
                 user.setRemaining(newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-                Payment payment = PaymentResponse.toEntity(response, user);
+                Payment payment = testPaymentResponse.toEntity(response, user);
                 paymentRepository.save(payment);
                 user.getPayments().add(payment);
                 userRepository.save(user);
@@ -92,12 +105,11 @@ public class PaymentController {
                 Set<Payment> payments = new HashSet<>();
                 User newUser = new User(id, newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), payments);
                 userRepository.save(newUser);
-                Payment payment = PaymentResponse.toEntity(response, newUser);
+                Payment payment = testPaymentResponse.toEntity(response, newUser);
                 paymentRepository.save(payment);
                 payments.add(payment);
                 userRepository.save(newUser);
             });
-
 
             try {
                 kafkaService.sendMessage(new IsBilling(id, true));
@@ -189,11 +201,6 @@ public class PaymentController {
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
         return connection;
-    }
-
-    @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String index() {
-        return "/widget/checkout";
     }
 
     @RequestMapping(value = "/fail", method = RequestMethod.GET)

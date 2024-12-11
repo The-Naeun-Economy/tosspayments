@@ -1,31 +1,40 @@
 package com.example.demo.Response;
 
+
 import com.example.demo.domain.Payment;
 import com.example.demo.domain.User;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.json.simple.JSONObject;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.Builder;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-
-import java.util.HashSet;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+import java.util.UUID;
 
-@Data
-@Getter
-@NoArgsConstructor
-public class PaymentResponse {
-    public static Payment toEntity(JSONObject response, User user) {
-        return Payment.builder()
-                .user(user)
-                .orderId(response.get("orderId").toString())
-                .paymentKey(response.get("paymentKey").toString())
-                .requestedAt(response.get("requestedAt").toString())
-                .method(response.get("method").toString())
-                .amount((Long) response.get("totalAmount"))
-                .build();
+public record PaymentResponse (
+        Long id,
+        Long userId,
+        String orderId,
+        String paymentKey,
+        String requestedAt,
+        String method,
+        Long amount,
+        boolean isCanceled
+) {
+    public static PaymentResponse from(Payment payment) {
+        return new PaymentResponse(
+                payment.getId(),
+                payment.getUser().getId(),
+                payment.getOrderId(),
+                payment.getPaymentKey(),
+                payment.getRequestedAt(),
+                payment.getMethod(),
+                payment.getAmount(),
+                payment.isCanceled()
+        );
     }
 }
+
+
+
+
