@@ -11,4 +11,5 @@ public interface PaymentService {
     Long tokenGetUserId(String token);
     Page<PaymentResponse> getPaymentByUserId(Long userId, Pageable pageable);
     Page<PaymentResponse> getPaymentAll(Pageable pageable);
+    String getRemaining(Long userId);
 }

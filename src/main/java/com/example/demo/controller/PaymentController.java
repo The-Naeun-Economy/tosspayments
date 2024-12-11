@@ -63,19 +63,9 @@ public class PaymentController {
     }
 
     @GetMapping("/remaining")
-    public boolean userRemaining(@RequestHeader String Authorization) {
+    public String userRemaining(@RequestHeader String Authorization) {
         Long id = paymentService.tokenGetUserId(Authorization);
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
-
-        ZonedDateTime remaining;
-        try {
-            remaining = ZonedDateTime.parse(user.getRemaining());
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("Invalid date format for user remaining time: " + user.getRemaining(), e);
-        }
-        ZonedDateTime now = ZonedDateTime.now();
-        return remaining.isAfter(now);
+        return paymentService.getRemaining(id);
     }
 
     @RequestMapping(value = {"/confirm/widget", "/confirm/payment"})

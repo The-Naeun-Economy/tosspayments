@@ -3,6 +3,7 @@ package com.example.demo.Service;
 import com.example.demo.Response.PaymentResponse;
 import com.example.demo.domain.Payment;
 import com.example.demo.repository.PaymentRepository;
+import com.example.demo.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.List;
 public class PaymentServiceImpl implements PaymentService{
 
     private final PaymentRepository paymentRepository;
+    private final UserRepository userRepository;
 
     @Value("${jwt.secret-key}")
     private String jwtSecretKey;
@@ -40,6 +42,11 @@ public class PaymentServiceImpl implements PaymentService{
     @Override
     public Page<PaymentResponse> getPaymentAll(Pageable pageable) {
         return paymentRepository.findAllPayments(pageable).map(PaymentResponse::from);
+    }
+
+    @Override
+    public String getRemaining(Long userId) {
+        return userRepository.findRemainingByUserId(userId);
     }
 
 
