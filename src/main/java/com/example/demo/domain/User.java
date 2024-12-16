@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import lombok.*;
 
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,7 @@ import java.util.Set;
 public class User {
     @Id
     private Long id;
-    private String Remaining;
+    private ZonedDateTime Remaining;
     @OneToMany(mappedBy = "user")
     private Set<Payment> payments = new HashSet<>();
 }

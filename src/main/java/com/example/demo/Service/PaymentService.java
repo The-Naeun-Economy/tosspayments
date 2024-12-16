@@ -12,4 +12,5 @@ public interface PaymentService {
     Page<PaymentResponse> getPaymentByUserId(Long userId, Pageable pageable);
     Page<PaymentResponse> getPaymentAll(Pageable pageable);
     String getRemaining(Long userId);
+    Page<PaymentResponse> getBetweenAt(String start, String end, int page, int size);
 }

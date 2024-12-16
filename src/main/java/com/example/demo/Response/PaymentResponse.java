@@ -27,7 +27,7 @@ public record PaymentResponse (
                 payment.getUser().getId(),
                 payment.getOrderId(),
                 payment.getPaymentKey(),
-                payment.getRequestedAt(),
+                payment.getRequestedAt().toString(),
                 payment.getMethod(),
                 payment.getAmount(),
                 payment.isCanceled()

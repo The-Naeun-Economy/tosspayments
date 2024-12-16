@@ -73,6 +73,15 @@ public class PaymentController {
         return paymentService.getPaymentAll(pageable);
     }
 
+    @GetMapping("/between")
+    public Page<PaymentResponse> findBetween (
+            @RequestParam String start,
+            @RequestParam String end,
+            @RequestParam int page,
+            @RequestParam int size) {
+        return paymentService.getBetweenAt(start,end,page,size);
+    }
+
     @PostMapping("/plantipay")
     public String plantiPay(@RequestHeader String Authorization,
                             @RequestParam String orderName,
@@ -87,7 +96,7 @@ public class PaymentController {
         requestData.put("redirectUri", "https://repick.site");
         System.out.println(requestData);
 
-        HttpClient httpClient = HttpClient.create().followRedirect(true); // 리다이렉션 허용
+        HttpClient httpClient = HttpClient.create().followRedirect(true);
         WebClient webClient = WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
@@ -117,15 +126,15 @@ public class PaymentController {
         String secretKey = request.getRequestURI().contains("/confirm/payment") ? API_SECRET_KEY : WIDGET_SECRET_KEY;
         JSONObject response = sendRequest(parseRequestData(jsonBody), secretKey, "https://api.tosspayments.com/v1/payments/confirm");
 
-        if (!response.containsKey("code") || response.get("code").equals("ALREADY_PROCESSED_PAYMENT")) {
+        if (!response.containsKey("code")) {
 
             Long id = paymentService.tokenGetUserId(Authorization);
             ZonedDateTime parsedDateTime = ZonedDateTime.parse(response.get("requestedAt").toString());
             int days = response.get("totalAmount").toString().equals("5900") ? 30 : 365;
 
             userRepository.findById(id).ifPresentOrElse(user -> {
-                ZonedDateTime newDateTime = ZonedDateTime.parse(user.getRemaining()).plusDays(days);
-                user.setRemaining(newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+                ZonedDateTime newDateTime = user.getRemaining().plusDays(days);
+                user.setRemaining(newDateTime);
                 Payment payment = testPaymentResponse.toEntity(response, user);
                 paymentRepository.save(payment);
                 user.getPayments().add(payment);
@@ -133,20 +142,18 @@ public class PaymentController {
             }, () -> {
                 ZonedDateTime newDateTime = parsedDateTime.plusDays(days);
                 Set<Payment> payments = new HashSet<>();
-                User newUser = new User(id, newDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), payments);
+                User newUser = new User(id, newDateTime, payments);
                 userRepository.save(newUser);
                 Payment payment = testPaymentResponse.toEntity(response, newUser);
                 paymentRepository.save(payment);
                 payments.add(payment);
                 userRepository.save(newUser);
             });
-
             try {
                 kafkaService.sendMessage(new IsBilling(id, true));
             } catch (Exception e) {
                 logger.error("Failed to Producer Sent", e);
             }
-
         }
 
         int statusCode = response.containsKey("code") ? 400 : 200;

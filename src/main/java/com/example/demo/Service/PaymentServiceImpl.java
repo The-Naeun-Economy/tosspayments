@@ -9,9 +9,11 @@ import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Service
@@ -47,6 +49,13 @@ public class PaymentServiceImpl implements PaymentService{
     @Override
     public String getRemaining(Long userId) {
         return userRepository.findRemainingByUserId(userId);
+    }
+
+    @Override
+    public Page<PaymentResponse> getBetweenAt(String start, String end, int page, int size){
+        ZonedDateTime startAt = ZonedDateTime.parse(start);
+        ZonedDateTime endAt = ZonedDateTime.parse(end);
+        return paymentRepository.findBetweenAt(startAt,endAt, PageRequest.of(page, size)).map(PaymentResponse::from);
     }
 
 

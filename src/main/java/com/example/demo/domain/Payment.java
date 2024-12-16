@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.ZonedDateTime;
+
 @Entity
 @Builder
 @NoArgsConstructor
@@ -20,7 +22,7 @@ public class Payment {
     private User user;
     private String orderId;
     private String paymentKey;
-    private String requestedAt;
+    private ZonedDateTime requestedAt;
     private String method;
     private Long amount;
     @Builder.Default
