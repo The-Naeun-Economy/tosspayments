@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-
     @Query(value = "SELECT u.Remaining FROM User u")
     String findRemainingByUserId(Long id);
 }

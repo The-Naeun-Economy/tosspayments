@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.Dto.IsBilling;
+import com.example.demo.Dto.PlantiPayDto;
 import com.example.demo.Response.PaymentResponse;
 import com.example.demo.Response.testPaymentResponse;
 import com.example.demo.Service.KafkaService;
@@ -16,12 +17,14 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -46,6 +49,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
+    private final WebClient.Builder webClientBuilder;
 
     @GetMapping("/mypayments")
     public Page<PaymentResponse> myPayments(@RequestHeader String Authorization,
@@ -60,6 +64,23 @@ public class PaymentController {
     public Page<PaymentResponse> myPayments(@RequestParam int page, @RequestParam int size) {
         Pageable pageable = PageRequest.of(page, size);
         return paymentService.getPaymentAll(pageable);
+    }
+
+    @PostMapping("/plantipay")
+    public String plantiPay(@RequestHeader String Authorization,
+                            @RequestParam String orderName,
+                            @RequestParam int amount) {
+        String url = "https://plantify.co.kr/v1/pay/payment";
+        PlantiPayDto plantiPayDto = new PlantiPayDto(orderName, amount);
+        System.out.println(plantiPayDto);
+        String response = webClientBuilder.build()
+                .post()
+                .uri(url)
+                .bodyValue(plantiPayDto)
+                .retrieve()
+                .bodyToMono(String.class).block();
+        System.out.println(response);
+        return response;
     }
 
     @GetMapping("/remaining")
