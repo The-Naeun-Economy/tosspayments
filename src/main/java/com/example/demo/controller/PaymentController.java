@@ -22,9 +22,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -79,12 +81,16 @@ public class PaymentController {
         requestData.put("status", "PAYMENT");
         requestData.put("redirectUri", "https://repick.site");
         System.out.println(requestData);
-        String response = webClientBuilder.build()
-                .post()
+        HttpClient httpClient = HttpClient.create().followRedirect(true); // 리다이렉션 허용
+        WebClient webClient = WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+        String response = webClient.post()
                 .uri(url)
                 .bodyValue(requestData)
                 .retrieve()
-                .bodyToMono(String.class).block();
+                .bodyToMono(String.class)
+                .block();
         System.out.println(response);
         return response;
     }
