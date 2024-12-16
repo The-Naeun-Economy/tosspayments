@@ -71,12 +71,18 @@ public class PaymentController {
                             @RequestParam String orderName,
                             @RequestParam int amount) {
         String url = "https://plantify.co.kr/v1/pay/payment";
-        PlantiPayDto plantiPayDto = new PlantiPayDto(orderName, amount);
-        System.out.println(plantiPayDto);
+        JSONObject requestData = new JSONObject();
+        requestData.put("userId", 2);
+        requestData.put("sellerId", 2);
+        requestData.put("orderName", "리픽 1개월 구독");
+        requestData.put("amount", 15000);
+        requestData.put("status", "PAYMENT");
+        requestData.put("redirectUri", "https://repick.site");
+        System.out.println(requestData);
         String response = webClientBuilder.build()
                 .post()
                 .uri(url)
-                .bodyValue(plantiPayDto)
+                .bodyValue(requestData)
                 .retrieve()
                 .bodyToMono(String.class).block();
         System.out.println(response);
