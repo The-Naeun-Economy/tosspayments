@@ -10,6 +10,8 @@ import com.example.demo.domain.Payment;
 import com.example.demo.domain.User;
 import com.example.demo.repository.PaymentRepository;
 import com.example.demo.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.json.simple.JSONObject;
@@ -21,6 +23,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.ui.Model;
@@ -52,6 +56,7 @@ public class PaymentController {
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
     private final WebClient.Builder webClientBuilder;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/mypayments")
     public Page<PaymentResponse> myPayments(@RequestHeader String Authorization,
@@ -71,7 +76,7 @@ public class PaymentController {
     @PostMapping("/plantipay")
     public String plantiPay(@RequestHeader String Authorization,
                             @RequestParam String orderName,
-                            @RequestParam int amount) {
+                            @RequestParam int amount) throws JsonProcessingException {
         String url = "https://plantify.co.kr/v1/pay/payment";
         JSONObject requestData = new JSONObject();
         requestData.put("userId", 2);
@@ -81,13 +86,15 @@ public class PaymentController {
         requestData.put("status", "PAYMENT");
         requestData.put("redirectUri", "https://repick.site");
         System.out.println(requestData);
+
         HttpClient httpClient = HttpClient.create().followRedirect(true); // 리다이렉션 허용
         WebClient webClient = WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
         String response = webClient.post()
                 .uri(url)
-                .bodyValue(requestData)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .bodyValue(objectMapper.writeValueAsString(requestData))
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
