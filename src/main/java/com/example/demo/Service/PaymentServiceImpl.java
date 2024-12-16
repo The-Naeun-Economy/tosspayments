@@ -53,9 +53,16 @@ public class PaymentServiceImpl implements PaymentService{
 
     @Override
     public Page<PaymentResponse> getBetweenAt(String start, String end, int page, int size){
-        ZonedDateTime startAt = ZonedDateTime.parse(start);
-        ZonedDateTime endAt = ZonedDateTime.parse(end);
+        ZonedDateTime startAt = ZonedDateTime.parse(start + "T00:00:00+09:00");
+        ZonedDateTime endAt = ZonedDateTime.parse( end + "T23:59:59+09:00");
         return paymentRepository.findBetweenAt(startAt,endAt, PageRequest.of(page, size)).map(PaymentResponse::from);
+    }
+
+    @Override
+    public Long getBetweenSum(String start, String end){
+        ZonedDateTime startAt = ZonedDateTime.parse(start + "T00:00:00+09:00");
+        ZonedDateTime endAt = ZonedDateTime.parse( end + "T23:59:59+09:00");
+        return paymentRepository.sumBetween(startAt,endAt);
     }
 
 

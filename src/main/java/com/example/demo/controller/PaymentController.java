@@ -75,11 +75,19 @@ public class PaymentController {
 
     @GetMapping("/between")
     public Page<PaymentResponse> findBetween (
-            @RequestParam String start,
-            @RequestParam String end,
+            @RequestParam String start,//2024-12-16
+            @RequestParam String end,//2024-12-16
             @RequestParam int page,
             @RequestParam int size) {
         return paymentService.getBetweenAt(start,end,page,size);
+    }
+
+    @GetMapping("/betweensum")
+    public Long betweenSum (
+            @RequestParam String start,//2024-12-16
+            @RequestParam String end//2024-12-16
+) {
+        return paymentService.getBetweenSum(start,end);
     }
 
     @PostMapping("/plantipay")

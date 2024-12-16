@@ -22,5 +22,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query(value = "select p from Payment p where p.requestedAt between :startAt and :endAt order by p.id DESC ")
     Page<Payment> findBetweenAt(@Param("startAt") ZonedDateTime startAt, @Param("endAt") ZonedDateTime endAt, Pageable pageable);
 
+    @Query(value = "select sum(p.amount) from Payment p where p.requestedAt between :startAt and :endAt")
+    Long sumBetween(@Param("startAt") ZonedDateTime startAt, @Param("endAt") ZonedDateTime endAt);
+
 
 }
