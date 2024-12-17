@@ -102,7 +102,7 @@ public class PaymentController {
         requestData.put("orderName", amount == 5900 ? "리픽 1개월 구독" : "리픽 12개월 구독");
         requestData.put("amount", amount);
         requestData.put("status", "PAYMENT");
-        requestData.put("redirectUri", "https://repick.site/tosspayments/loading");
+        requestData.put("redirectUri", "https://repick.site/tosspayment/loading");
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -129,7 +129,7 @@ public class PaymentController {
             JSONObject res = new JSONObject();
             res.put("orderId", orderId);
             res.put("paymentKey","null");
-            res.put("requestedAt", ZonedDateTime.now().plusHours(9).toString());
+            res.put("requestedAt", ZonedDateTime.now().toString());
             res.put("method", "plantiPay");
             res.put("totalAmount", amount);
             paymentService.UserIfPresentOrElse(id,res);
