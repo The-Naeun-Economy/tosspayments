@@ -116,7 +116,7 @@ public class PaymentController {
     }
 
     @GetMapping("/plantipay")
-    public String plantiPay(@RequestHeader String Authorization,
+    public Long plantiPay(@RequestHeader String Authorization,
                             @RequestParam String orderId) {
         String url = "https://plantify.co.kr/v1/pay/settlements/external?orderId=" + orderId;
         RestTemplate restTemplate = new RestTemplate();
@@ -138,10 +138,10 @@ public class PaymentController {
             } catch (Exception e) {
                 logger.error("Failed to Producer Sent", e);
             }
-            return "success";
+            return jsonNode.get("amount").asLong();
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
-            return "fail";
+            return 0L;
         }
     }
 
