@@ -30,6 +30,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.view.RedirectView;
 import reactor.netty.http.client.HttpClient;
 
 import java.io.*;
@@ -91,9 +92,9 @@ public class PaymentController {
     }
 
     @PostMapping("/plantipay")
-    public String plantiPay(@RequestHeader String Authorization,
-                            @RequestParam String orderName,
-                            @RequestParam int amount) throws JsonProcessingException {
+    public RedirectView plantiPay(@RequestHeader String Authorization,
+                                  @RequestParam String orderName,
+                                  @RequestParam int amount) throws JsonProcessingException {
         String url = "https://plantify.co.kr/v1/pay/payment";
         JSONObject requestData = new JSONObject();
         requestData.put("userId", 2);
@@ -116,7 +117,8 @@ public class PaymentController {
                 .bodyToMono(String.class)
                 .block();
         System.out.println(response);
-        return response;
+
+        return new RedirectView(response);
     }
 
     @GetMapping("/remaining")
