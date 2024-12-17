@@ -8,8 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.ZonedDateTime;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = "SELECT u.Remaining FROM User u")
-    String findRemainingByUserId(Long id);
+    ZonedDateTime findRemainingByUserId(Long id);
 }

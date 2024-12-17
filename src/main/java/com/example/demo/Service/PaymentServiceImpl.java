@@ -48,7 +48,7 @@ public class PaymentServiceImpl implements PaymentService{
 
     @Override
     public String getRemaining(Long userId) {
-        return userRepository.findRemainingByUserId(userId);
+        return userRepository.findRemainingByUserId(userId).toString();
     }
 
     @Override
