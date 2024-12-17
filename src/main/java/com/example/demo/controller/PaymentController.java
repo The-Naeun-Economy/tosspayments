@@ -23,12 +23,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
 import reactor.netty.http.client.HttpClient;
@@ -92,33 +91,42 @@ public class PaymentController {
     }
 
     @PostMapping("/plantipay")
-    public String plantiPay(@RequestHeader String Authorization,
-                                  @RequestParam String orderName,
-                                  @RequestParam int amount) throws JsonProcessingException {
+    public String plantiPay(@RequestParam String orderName, @RequestParam int amount) throws JsonProcessingException {
         String url = "https://plantify.co.kr/v1/pay/payment";
-        JSONObject requestData = new JSONObject();
+
+        Map<String, Object> requestData = new HashMap<>();
         requestData.put("userId", 2);
         requestData.put("sellerId", 2);
-        requestData.put("orderName", "리픽 1개월 구독");
-        requestData.put("amount", 15000);
+        requestData.put("orderName", orderName);
+        requestData.put("amount", amount);
         requestData.put("status", "PAYMENT");
-        requestData.put("redirectUri", "https://repick.site");
-        System.out.println(requestData);
+        requestData.put("redirectUri", "https://repick.site/tosspayments");
 
-        HttpClient httpClient = HttpClient.create().followRedirect(true);
-        WebClient webClient = WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .build();
-        String response = webClient.post()
-                .uri(url)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .bodyValue(objectMapper.writeValueAsString(requestData))
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<String> entity = new HttpEntity<>(objectMapper.writeValueAsString(requestData), headers);
+        String response = restTemplate.postForObject(url, entity, String.class);
+
         System.out.println(response);
-
         return response;
+    }
+
+    @GetMapping("/plantipay")
+    public String plantiPay(@RequestHeader String Authorization,
+                            @RequestParam String orderId) {
+        String url = "https://plantify.co.kr/v1/pay/settlements/external?orderId=" + orderId;
+
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            String response = restTemplate.getForObject(url, String.class);
+            System.out.println(response);
+            return "success";
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            return "fail";
+        }
     }
 
     @GetMapping("/remaining")
