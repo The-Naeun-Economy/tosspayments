@@ -2,6 +2,7 @@ package com.example.demo.Service;
 
 import com.example.demo.Response.PaymentResponse;
 import com.example.demo.domain.Payment;
+import org.json.simple.JSONObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,4 +15,5 @@ public interface PaymentService {
     String getRemaining(Long userId);
     Page<PaymentResponse> getBetweenAt(String start, String end, int page, int size);
     Long getBetweenSum(String start, String end);
+    void UserIfPresentOrElse(Long id , JSONObject response);
 }

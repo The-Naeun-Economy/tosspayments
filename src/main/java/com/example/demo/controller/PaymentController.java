@@ -11,6 +11,7 @@ import com.example.demo.domain.User;
 import com.example.demo.repository.PaymentRepository;
 import com.example.demo.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -91,16 +92,17 @@ public class PaymentController {
     }
 
     @PostMapping("/plantipay")
-    public String plantiPay(@RequestParam String orderName, @RequestParam int amount) throws JsonProcessingException {
+    public String plantiPay(@RequestParam int amount) throws JsonProcessingException {
+        if(amount != 5900 && amount != 59000) {return "error";}
         String url = "https://plantify.co.kr/v1/pay/payment";
 
         Map<String, Object> requestData = new HashMap<>();
         requestData.put("userId", 2);
         requestData.put("sellerId", 2);
-        requestData.put("orderName", orderName);
+        requestData.put("orderName", amount == 5900 ? "리픽 1개월 구독" : "리픽 12개월 구독");
         requestData.put("amount", amount);
         requestData.put("status", "PAYMENT");
-        requestData.put("redirectUri", "https://repick.site/tosspayments");
+        requestData.put("redirectUri", "https://repick.site/tosspayments/loading");
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -117,11 +119,25 @@ public class PaymentController {
     public String plantiPay(@RequestHeader String Authorization,
                             @RequestParam String orderId) {
         String url = "https://plantify.co.kr/v1/pay/settlements/external?orderId=" + orderId;
-
         RestTemplate restTemplate = new RestTemplate();
         try {
             String response = restTemplate.getForObject(url, String.class);
             System.out.println(response);
+            JsonNode jsonNode = objectMapper.readTree(response);
+            Long amount = jsonNode.get("amount").asLong();
+            Long id = paymentService.tokenGetUserId(Authorization);
+            JSONObject res = new JSONObject();
+            res.put("orderId", orderId);
+            res.put("paymentKey","null");
+            res.put("requestedAt", ZonedDateTime.now().plusHours(9).toString());
+            res.put("method", "plantiPay");
+            res.put("totalAmount", amount);
+            paymentService.UserIfPresentOrElse(id,res);
+            try {
+                kafkaService.sendMessage(new IsBilling(id, true));
+            } catch (Exception e) {
+                logger.error("Failed to Producer Sent", e);
+            }
             return "success";
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
@@ -145,28 +161,8 @@ public class PaymentController {
         JSONObject response = sendRequest(parseRequestData(jsonBody), secretKey, "https://api.tosspayments.com/v1/payments/confirm");
 
         if (!response.containsKey("code")) {
-
             Long id = paymentService.tokenGetUserId(Authorization);
-            ZonedDateTime parsedDateTime = ZonedDateTime.parse(response.get("requestedAt").toString());
-            int days = response.get("totalAmount").toString().equals("5900") ? 30 : 365;
-
-            userRepository.findById(id).ifPresentOrElse(user -> {
-                ZonedDateTime newDateTime = user.getRemaining().plusDays(days);
-                user.setRemaining(newDateTime);
-                Payment payment = testPaymentResponse.toEntity(response, user);
-                paymentRepository.save(payment);
-                user.getPayments().add(payment);
-                userRepository.save(user);
-            }, () -> {
-                ZonedDateTime newDateTime = parsedDateTime.plusDays(days);
-                Set<Payment> payments = new HashSet<>();
-                User newUser = new User(id, newDateTime, payments);
-                userRepository.save(newUser);
-                Payment payment = testPaymentResponse.toEntity(response, newUser);
-                paymentRepository.save(payment);
-                payments.add(payment);
-                userRepository.save(newUser);
-            });
+            paymentService.UserIfPresentOrElse(id,response);
             try {
                 kafkaService.sendMessage(new IsBilling(id, true));
             } catch (Exception e) {
