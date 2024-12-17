@@ -92,7 +92,7 @@ public class PaymentController {
     }
 
     @PostMapping("/plantipay")
-    public RedirectView plantiPay(@RequestHeader String Authorization,
+    public String plantiPay(@RequestHeader String Authorization,
                                   @RequestParam String orderName,
                                   @RequestParam int amount) throws JsonProcessingException {
         String url = "https://plantify.co.kr/v1/pay/payment";
@@ -118,7 +118,7 @@ public class PaymentController {
                 .block();
         System.out.println(response);
 
-        return new RedirectView(response);
+        return response;
     }
 
     @GetMapping("/remaining")
