@@ -54,7 +54,9 @@ public class PaymentServiceImpl implements PaymentService{
 
     @Override
     public String getRemaining(Long userId) {
-        return userRepository.findRemainingByUserId(userId).toString();
+        ZonedDateTime zonedDateTime = userRepository.findRemainingByUserId(userId);
+        if(zonedDateTime == null){return ZonedDateTime.now().minusDays(1).toString();}
+        return zonedDateTime.toString();
     }
 
     @Override
